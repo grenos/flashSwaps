@@ -1,28 +1,45 @@
-const hre = require("hardhat");
 const fs = require("fs");
 require("dotenv").config();
+const { ethers } = require("ethers");
 
-let config, arb, owner;
-const network = hre.network.name;
-if (network === "aurora") config = require("./../config/aurora.json");
-if (network === "fantom") config = require("./../config/fantom.json");
+const { MNEMONIC, INFURA_KEY } = process.env;
+const contract = require("../build/contracts/FlashLoan.json");
+const interface = require("../build/contracts/IERC20.json");
+const provider = new ethers.providers.JsonRpcProvider(
+    `https://polygon-mumbai.infura.io/v3/${INFURA_KEY}`
+);
+let _wallet = new ethers.Wallet.fromMnemonic(MNEMONIC);
+let wallet = _wallet.connect(provider);
+const config = require("../config/polygon/polygon.json");
 
 const main = async () => {
-    [owner] = await ethers.getSigners();
-    console.log(`Owner: ${owner.address}`);
-    const IArb = await ethers.getContractFactory("Arb");
-    arb = await IArb.attach(config.arbContract);
-    const interface = await ethers.getContractFactory("WETH9");
-    const tokenAsset = await interface.attach(asset.address);
-    const ownerBalance = await tokenAsset.balanceOf(owner.address);
+    const _contract = new ethers.Contract(
+        config.arbContract,
+        contract.abi,
+        wallet
+    );
 
-    for (let i = 0; i < config.baseAssets.length; i++) {
-        const asset = config.baseAssets[i];
-        const tokenAsset = await interface.attach(asset.address);
-        const ownerBalance = await tokenAsset.balanceOf(owner.address);
-        console.log(`${asset.sym} Owner Balance: `, ownerBalance.toString());
-        const arbBalance = await arb.getBalance(asset.address);
-        console.log(`${asset.sym} Arb Balance: `, arbBalance.toString());
+    let asset;
+
+    try {
+        for (let i = 0; i < config.baseAssets.length; i++) {
+            asset = config.baseAssets[i];
+            const _interface = new ethers.Contract(
+                asset.address,
+                interface.abi,
+                wallet
+            );
+
+            console.log(_interface.address);
+
+            const balance = await _interface.balanceOf(wallet.address);
+            console.log(`${asset.sym} Owner Balance: `, balance.toString());
+
+            const arbBalance = await _contract.getTokenBalance(asset.address);
+            console.log(`${asset.sym} Arb Balance: `, arbBalance.toString());
+        }
+    } catch (error) {
+        console.log(`Error: getting ${asset.sym} balances : ${error}`);
     }
 };
 
@@ -36,9 +53,4 @@ process.on("unhandledRejection", (reason, p) => {
     console.log("Unhandled Rejection at: " + p + " - reason: " + reason);
 });
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+main().then(() => process.exit(0));

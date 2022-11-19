@@ -1,4 +1,3 @@
-// const hre = require("hardhat");
 const fs = require("fs");
 require("dotenv").config();
 const { ethers } = require("ethers");

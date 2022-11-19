@@ -1,37 +1,62 @@
-const hre = require("hardhat");
 const fs = require("fs");
 require("dotenv").config();
+const { ethers } = require("ethers");
 
-let config, arb, owner;
-const network = hre.network.name;
-if (network === "aurora") config = require("./../config/aurora.json");
-if (network === "fantom") config = require("./../config/fantom.json");
+const { MNEMONIC, INFURA_KEY } = process.env;
+const contract = require("../build/contracts/FlashLoan.json");
+const interface = require("../build/contracts/IERC20.json");
+const provider = new ethers.providers.JsonRpcProvider(
+    `https://polygon-mumbai.infura.io/v3/${INFURA_KEY}`
+);
+let _wallet = new ethers.Wallet.fromMnemonic(MNEMONIC);
+let wallet = _wallet.connect(provider);
+const config = require("../config/polygon/polygon.json");
 
 const main = async () => {
-    [owner] = await ethers.getSigners();
-    console.log(`Owner: ${owner.address}`);
-    const IArb = await ethers.getContractFactory("Arb");
-    arb = await IArb.attach(config.arbContract);
-    const interface = await ethers.getContractFactory("WETH9");
-    for (let i = 0; i < config.baseAssets.length; i++) {
-        const asset = config.baseAssets[i];
-        const tokenAsset = await interface.attach(asset.address);
-        const ownerBalance = await tokenAsset.balanceOf(owner.address);
-        console.log(`${asset.sym} Owner Balance: `, ownerBalance.toString());
-        const arbBalance = await arb.getBalance(asset.address);
-        console.log(
-            `${asset.sym} Original Arb Balance: `,
-            arbBalance.toString()
-        );
-        const tx = await tokenAsset.transfer(config.arbContract, ownerBalance);
-        await tx.wait();
-        await new Promise((r) => setTimeout(r, 10000));
-        const postFundBalance = await arb.getBalance(asset.address);
-        console.log(
-            `${asset.sym} New Arb Balance: `,
-            postFundBalance.toString()
-        );
-    }
+    const _contract = new ethers.Contract(
+        config.arbContract,
+        contract.abi,
+        wallet
+    );
+
+    let asset;
+
+    try {
+        for (let i = 0; i < config.baseAssets.length; i++) {
+            asset = config.baseAssets[i];
+            const _interface = new ethers.Contract(
+                asset.address,
+                interface.abi,
+                wallet
+            );
+
+            const ownerBalance = await _interface.balanceOf(wallet.address);
+
+            console.log(
+                `${asset.sym} Owner Balance: `,
+                ownerBalance.toString()
+            );
+
+            const arbBalance = await _contract.getTokenBalance(asset.address);
+            console.log(
+                `${asset.sym} Original Arb Balance: `,
+                arbBalance.toString()
+            );
+
+            await _interface
+                .connect(wallet)
+                .transfer(config.arbContract, ownerBalance);
+
+            const postFundBalance = await _contract.getTokenBalance(
+                asset.address
+            );
+            console.log(
+                `${asset.sym} New Arb Balance: `,
+                postFundBalance.toString()
+            );
+        }
+    } catch (error) {}
+
     console.log(
         "Note it might take a while for the funds to show up, try balances.js in a few mins"
     );
