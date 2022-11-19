@@ -1,0 +1,34 @@
+{
+    "arbContract": "0x262f985445E292f3A74dF4C3E996E1E1B654220c",
+    "minBasisPointsPerTrade": 1,
+
+    "routers": [
+        {
+            "dex": "sushiswap",
+            "address": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+        },
+        {
+            "dex": "quickswap",
+            "address": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
+        }
+    ],
+
+    "baseAssets": [
+        {
+            "sym": "weth",
+            "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
+        },
+        {
+            "sym": "link",
+            "address": "0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39"
+        },
+        {
+            "sym": "wmatic",
+            "address": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"
+        },
+        {
+            "sym": "dai",
+            "address": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
+        }
+    ]
+}

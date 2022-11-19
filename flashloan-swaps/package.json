@@ -1,0 +1,11 @@
+{
+    "name": "flashloan-swaps",
+    "version": "1.0.0",
+    "dependencies": {
+        "@aave/core-v3": "^1.16.2",
+        "@openzeppelin/contracts": "^4.8.0",
+        "@truffle/hdwallet-provider": "^2.1.1",
+        "dotenv": "^16.0.3",
+        "ethers": "^5.7.2"
+    }
+}
