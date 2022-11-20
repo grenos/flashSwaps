@@ -65,7 +65,7 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "//SPDX-License-Identifier: Unlicense\npragma solidity ^0.8.10;\n\nimport {Ownable} from \"@aave/core-v3/contracts/dependencies/openzeppelin/contracts/Ownable.sol\";\nimport {IERC20} from \"@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol\";\n\ninterface IUniswapV2Router {\n  function getAmountsOut(uint256 amountIn, address[] memory path) external view returns (uint256[] memory amounts);\n  function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] calldata path, address to, uint256 deadline) external returns (uint256[] memory amounts);\n}\n\ninterface IUniswapV2Pair {\n  function token0() external view returns (address);\n  function token1() external view returns (address);\n  function swap(uint256 amount0Out,\tuint256 amount1Out,\taddress to,\tbytes calldata data) external;\n}\n\ncontract Arb is Ownable {\n\n\tfunction swap(address router, address _tokenIn, address _tokenOut, uint256 _amount) private {\n\t\tIERC20(_tokenIn).approve(router, _amount);\n\t\taddress[] memory path;\n\t\tpath = new address[](2);\n\t\tpath[0] = _tokenIn;\n\t\tpath[1] = _tokenOut;\n\t\tuint deadline = block.timestamp + 300;\n\t\tIUniswapV2Router(router).swapExactTokensForTokens(_amount, 1, path, address(this), deadline);\n\t}\n\n\tfunction getAmountOutMin(address router, address _tokenIn, address _tokenOut, uint256 _amount) public view returns (uint256) {\n\t\taddress[] memory path;\n\t\tpath = new address[](2);\n\t\tpath[0] = _tokenIn;\n\t\tpath[1] = _tokenOut;\n\t\tuint256[] memory amountOutMins = IUniswapV2Router(router).getAmountsOut(_amount, path);\n\t\treturn amountOutMins[path.length -1];\n\t}\n\n\tfunction estimateDualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) external view returns (uint256) {\n\t\tuint256 amtBack1 = getAmountOutMin(_router1, _token1, _token2, _amount);\n\t\tuint256 amtBack2 = getAmountOutMin(_router2, _token2, _token1, amtBack1);\n\t\treturn amtBack2;\n\t}\n\t\n\tfunction dualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) external onlyOwner {\n\t\tuint startBalance = IERC20(_token1).balanceOf(address(this));\n\t\tuint token2InitialBalance = IERC20(_token2).balanceOf(address(this));\n\t\tswap(_router1,_token1, _token2,_amount);\n\t\tuint token2Balance = IERC20(_token2).balanceOf(address(this));\n\t\tuint tradeableAmount = token2Balance - token2InitialBalance;\n\t\tswap(_router2,_token2, _token1,tradeableAmount);\n\t\tuint endBalance = IERC20(_token1).balanceOf(address(this));\n\t\trequire(endBalance > startBalance, \"Trade Reverted, No Profit Made\");\n\t}\n}\n",
-  "sourcePath": "/Users/vasilis/Projects/flashloan-swaps/contracts/Arb.sol",
+  "sourcePath": "/Users/vasilis/Projects/flashSwaps/flashloan-swaps/contracts/Arb.sol",
   "ast": {
     "absolutePath": "project:/contracts/Arb.sol",
     "exportedSymbols": {
@@ -4194,7 +4194,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.10",
-  "updatedAt": "2022-11-19T15:56:40.011Z",
+  "updatedAt": "2022-11-20T11:41:57.419Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},

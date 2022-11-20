@@ -2,12 +2,14 @@ const fs = require("fs");
 require("dotenv").config();
 const { ethers } = require("ethers");
 
-const { MNEMONIC, INFURA_KEY } = process.env;
+const { DEV, PROVIDER_TEST_URL, PROVIDER_MAIN_URL, MNEMONIC } = process.env;
+const provider = new ethers.providers.JsonRpcProvider(
+    DEV ? PROVIDER_TEST_URL : PROVIDER_MAIN_URL
+);
+
 const contract = require("../build/contracts/FlashLoan.json");
 const interface = require("../build/contracts/IERC20.json");
-const provider = new ethers.providers.JsonRpcProvider(
-    `https://polygon-mumbai.infura.io/v3/${INFURA_KEY}`
-);
+
 let _wallet = new ethers.Wallet.fromMnemonic(MNEMONIC);
 let wallet = _wallet.connect(provider);
 const config = require("../config/polygon/polygon.json");

@@ -1,21 +1,21 @@
-const hre = require("hardhat");
 const fs = require("fs");
 require("dotenv").config();
 const { ethers } = require("ethers");
 
-let config, arb, owner, inTrade, balances, routes, tokens;
-const network = hre.network.name;
-config = require("./../config/polygon/polygon.json");
+const { DEV, PROVIDER_TEST_URL, PROVIDER_MAIN_URL, MNEMONIC } = process.env;
+const provider = new ethers.providers.JsonRpcProvider(
+    DEV ? PROVIDER_TEST_URL : PROVIDER_MAIN_URL
+);
+
+const contract = require("../build/contracts/FlashLoan.json");
+const interface = require("../build/contracts/IERC20.json");
+const config = require("../config/polygon/polygon.json");
 routes = require("./../config/polygon/routes.json");
 tokens = require("./../config/polygon/tokens.json");
-const contract = require("./../artifacts/contracts/Arb.sol/Arb.json");
-const provider = new ethers.providers.JsonRpcProvider(process.env.GOERLI_URL);
 
-let _wallet = new ethers.Wallet.fromMnemonic(process.env.MNEMONIC);
+let _wallet = new ethers.Wallet.fromMnemonic(MNEMONIC);
 let wallet = _wallet.connect(provider);
-
-// if (network === "aurora") config = require("./../config/aurora.json");
-// if (network === "fantom") config = require("./../config/fantom.json");
+let balances = {};
 
 const main = async () => {
     await setup();
@@ -24,6 +24,7 @@ const main = async () => {
     //  await new Promise(r => setTimeout(r, i*1000));
     //  await lookForDualTrade();
     //});
+
     await lookForDualTrade();
 };
 
@@ -177,72 +178,70 @@ const dualTrade = async (router1, router2, baseToken, token2, amount) => {
     }
 };
 
+// ~ [START] - SETUP BALANCE LISTENER
 const setup = async () => {
-    // Create Contract object and pass Arb Abi
+    let asset;
 
-    const IArb = new ethers.Contract(config.arbContract, contract.abi, wallet);
-    arb = IArb.attach(config.arbContract);
+    try {
+        for (let i = 0; i < config.baseAssets.length; i++) {
+            asset = config.baseAssets[i];
 
-    // balances = {};
-    /*
-    "baseAssets": [
-      { "sym": "weth","address": "0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB" },
-      { "sym": "wnear", "address": "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d" },
-      { "sym": "usdt", "address": "0x4988a896b1227218e4A686fdE5EabdcAbd91571f" },
-      { "sym": "aurora", "address": "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79" },
-      { "sym": "atust", "address": "0x5ce9F0B6AFb36135b5ddBF11705cEB65E634A9dC" },
-      { "sym": "usdc", "address": "0xB12BFcA5A55806AaF64E99521918A4bf0fC40802" }
-    ],
-  */
-    // for (let i = 0; i < config.baseAssets.length; i++) {
-    // const asset = config.baseAssets[i];
+            // WETH9 === interface of wrapped ether
+            const _interface = new ethers.Contract(
+                asset.address,
+                interface.abi,
+                wallet
+            );
 
-    // WETH9 === interface of wrapped ether
-    // const interface = await ethers.getContractFactory("WETH9");
-    // const assetToken = await interface.attach(asset.address);
-    // check how much balance of each token is in the arb contract
-    // const balance = await assetToken.balanceOf(config.arbContract);
-    // console.log(asset.sym, balance.toString());
+            // check how much balance of each token is in the arb contract
+            const balance = await _interface.balanceOf(config.arbContract);
+            console.log(asset.sym, balance?.toString());
 
-    // balances[asset.address] = {
-    //     sym: asset.sym,
-    //     balance,
-    //     startBalance: balance,
-    // };
-    // }
+            balances[asset.address] = {
+                sym: asset.sym,
+                balance,
+                startBalance: balance,
+            };
+        }
+    } catch (error) {
+        console.log("setup error for asset : " + asset.sym + "- - ->", error);
+    }
 
-    // waits 2 minutes to call the logger the first time
-    // setTimeout(() => {
-    // then calls the logger every 1 minute indefinitely
-    // setInterval(() => {
-    // logResults();
-    // }, 600000);
-    // logResults();
-    // }, 120000);
+    setTimeout(() => {
+        setInterval(() => {
+            logResults();
+        }, 6000);
+        logResults();
+    }, 12000);
 };
 
-// const logResults = async () => {
-//     console.log(`############# LOGS #############`);
-//     for (let i = 0; i < config.baseAssets.length; i++) {
-//         // Check for balances of each token in Arb Contract
-//         const asset = config.baseAssets[i];
-//         const interface = await ethers.getContractFactory("WETH9");
-//         const assetToken = await interface.attach(asset.address);
-//         // set new balances for each token
-//         balances[asset.address].balance = await assetToken.balanceOf(
-//             config.arbContract
-//         );
-//         // find difference between start balance and current balance
-//         const diff = balances[asset.address].balance.sub(
-//             balances[asset.address].startBalance
-//         );
-//         // find percentage of difference
-//         const basisPoints = diff
-//             .mul(10000)
-//             .div(balances[asset.address].startBalance);
-//         console.log(`#  ${asset.sym}: ${basisPoints.toString()}bps`);
-//     }
-// };
+const logResults = async () => {
+    console.log(`############# LOGS #############`);
+
+    for (let i = 0; i < config.baseAssets.length; i++) {
+        const asset = config.baseAssets[i];
+        const _interface = new ethers.Contract(
+            asset.address,
+            interface.abi,
+            wallet
+        );
+
+        balances[asset.address].balance = await _interface.balanceOf(
+            config.arbContract
+        );
+
+        const diff = balances[asset.address].balance.sub(
+            balances[asset.address].startBalance
+        );
+
+        const basisPoints = diff
+            .mul(10000)
+            .div(balances[asset.address].startBalance);
+
+        console.log(`# ${asset.sym}: ${basisPoints.toString()}bps`);
+    }
+};
+// ~ [END] - SETUP BALANCE LISTENER
 
 process.on("uncaughtException", function (err) {
     console.log("UnCaught Exception 83: " + err);
@@ -254,9 +253,4 @@ process.on("unhandledRejection", (reason, p) => {
     console.log("Unhandled Rejection at: " + p + " - reason: " + reason);
 });
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+main().then(() => process.exit(0));

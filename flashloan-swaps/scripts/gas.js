@@ -1,19 +1,29 @@
-const hre = require("hardhat");
 const fs = require("fs");
 require("dotenv").config();
+const { ethers } = require("ethers");
 
-let config, arb, owner;
-const network = hre.network.name;
-if (network === "aurora") config = require("./../config/aurora.json");
-if (network === "fantom") config = require("./../config/fantom.json");
+const { DEV, PROVIDER_TEST_URL, PROVIDER_MAIN_URL } = process.env;
+const provider = new ethers.providers.JsonRpcProvider(
+    DEV ? PROVIDER_TEST_URL : PROVIDER_MAIN_URL
+);
+// DEV=true node scripts/gas.js
+// DEV=false node scripts/gas.js
+console.log(process.env.DEV, "process.env.DEV");
 
 const main = async () => {
-    [owner] = await ethers.getSigners();
-    const gasPrice = await ethers.provider.getGasPrice();
-    //{gasPrice: 1000000000001}
-    console.log(`Gas Price: ${gasPrice.toString()}`);
+    const gasPrice = await provider.getGasPrice();
+
+    console.log(
+        `Gas Price: ${ethers.utils.formatUnits(gasPrice, "gwei")} gwei`
+    );
+
     const recommendedPrice = gasPrice.mul(10).div(9);
-    console.log(`Recommended Price: ${recommendedPrice.toString()}`);
+    console.log(
+        `Recommended Price: ${ethers.utils.formatUnits(
+            recommendedPrice,
+            "gwei"
+        )} gwei`
+    );
 };
 
 process.on("uncaughtException", function (err) {
