@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {Ownable} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/Ownable.sol";
 import {IERC20} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol";
+import {SafeMath} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/SafeMath.sol";
 
 interface IUniswapV2Router {
   function getAmountsOut(uint256 amountIn, address[] memory path) external view returns (uint256[] memory amounts);
@@ -17,7 +18,9 @@ interface IUniswapV2Pair {
 
 contract Arb is Ownable {
 
-	function swap(address router, address _tokenIn, address _tokenOut, uint256 _amount) private {
+	using SafeMath for uint256;
+
+	function swap(address router, address _tokenIn, address _tokenOut, uint256 _amount) internal {
 		IERC20(_tokenIn).approve(router, _amount);
 		address[] memory path;
 		path = new address[](2);
@@ -42,12 +45,12 @@ contract Arb is Ownable {
 		return amtBack2;
 	}
 	
-	function dualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) external onlyOwner {
+	function dualDexTrade(address _router1, address _router2, address _token1, address _token2, uint256 _amount) internal onlyOwner {
 		uint startBalance = IERC20(_token1).balanceOf(address(this));
 		uint token2InitialBalance = IERC20(_token2).balanceOf(address(this));
 		swap(_router1,_token1, _token2,_amount);
 		uint token2Balance = IERC20(_token2).balanceOf(address(this));
-		uint tradeableAmount = token2Balance - token2InitialBalance;
+		uint tradeableAmount = token2Balance.sub(token2InitialBalance);
 		swap(_router2,_token2, _token1,tradeableAmount);
 		uint endBalance = IERC20(_token1).balanceOf(address(this));
 		require(endBalance > startBalance, "Trade Reverted, No Profit Made");

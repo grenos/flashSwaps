@@ -38,7 +38,8 @@ contract FlashLoan is FlashLoanSimpleReceiverBase, Arb {
         require(IERC20(asset).balanceOf(address(this)) > 0, "Zero balance in contract");
 
         // Your Arb logic goes here.
-
+        (address[] memory _swappingPair, address[] memory _routesPair) = abi.decode(params, (address[], address[]));
+        dualDexTrade(_routesPair[0], _routesPair[1], _swappingPair[0], _swappingPair[1], amount);
 
         // Make sure to have this call at the end
         uint256 amountOwed = amount.add(premium);
@@ -47,13 +48,14 @@ contract FlashLoan is FlashLoanSimpleReceiverBase, Arb {
         return true;
     }
 
-    function requestFlashLoan(address _asset, uint256 _amount) public onlyOwner {
+
+    function requestFlashLoan(address _asset, uint256 _amount, address[] memory _routesPair, address[] memory _swappingPair) public onlyOwner {
         require(address(POOL) != address(0), "POOL does not exist!");
 
         address receiverAddress = address(this);
         address asset = _asset;
         uint256 amount = _amount;
-        bytes memory params = "";
+        bytes memory params = abi.encode(_swappingPair, _routesPair);
         uint16 referralCode = 0;
 
         /**

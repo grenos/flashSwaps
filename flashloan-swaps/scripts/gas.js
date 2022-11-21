@@ -2,13 +2,8 @@ const fs = require("fs");
 require("dotenv").config();
 const { ethers } = require("ethers");
 
-const { DEV, PROVIDER_TEST_URL, PROVIDER_MAIN_URL } = process.env;
-const provider = new ethers.providers.JsonRpcProvider(
-    DEV ? PROVIDER_TEST_URL : PROVIDER_MAIN_URL
-);
-// DEV=true node scripts/gas.js
-// DEV=false node scripts/gas.js
-console.log(process.env.DEV, "process.env.DEV");
+const { PROVIDER_MAIN_URL } = process.env;
+const provider = new ethers.providers.JsonRpcProvider(PROVIDER_MAIN_URL);
 
 const main = async () => {
     const gasPrice = await provider.getGasPrice();
