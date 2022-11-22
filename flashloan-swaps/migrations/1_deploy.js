@@ -7,5 +7,5 @@ const PoolAddressesProvider_matic =
     "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6";
 
 module.exports = function (deployer) {
-    deployer.deploy(flashloan, PoolAddressesProvider_matic);
+    deployer.deploy(flashloan, PoolAddressesProvider_polygon);
 };

@@ -1,5 +1,5 @@
 {
-    "arbContract": "0xf6Fce992d326EEf851bf457240D30FB39b7ce7F3",
+    "arbContract": "0x87EB0b916b607bad3Ff4C306EbAFf87d1D57De01",
     "minBasisPointsPerTrade": 1,
 
     "routers": [
@@ -15,8 +15,8 @@
 
     "baseAssets": [
         {
-            "sym": "weth",
-            "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
+            "sym": "sushi",
+            "address": "0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a"
         },
         {
             "sym": "link",

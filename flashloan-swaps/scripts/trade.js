@@ -100,11 +100,11 @@ const lookForDualTrade = async () => {
         console.log("---------------------");
 
         // --------------------------------------------
-        // calculate 0.09% aave fee
-        // calculate 0.3% sushiswap fee
-        // calculate 0.3% quickswap fee
-        // 0.03 matic per swap ?
-        // slippage tolerance 0.5% ?
+        // calculate 0.09% aave fee on the loan amount
+        // calculate 0.3% sushiswap fee on the trade
+        // calculate 0.3% quickswap fee on the trade
+        // 0.035 matic per swap ? (gas spent x 6 -> avve(2) + sushiswap(1) + quickswap(1) + transfer(2))
+        // slippage tolerance 0.5% ? slipperage tolerance on sushi and quickswap
 
         const multiplier = ethers.BigNumber.from(
             config.minBasisPointsPerTrade + 10000

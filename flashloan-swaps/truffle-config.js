@@ -21,6 +21,8 @@ module.exports = {
             network_id: 137,
             confirmations: 1,
             timeoutBlocks: 200,
+            gas: 8000000,
+            gasPrice: 300000000000,
         },
         matic: {
             provider: () =>
