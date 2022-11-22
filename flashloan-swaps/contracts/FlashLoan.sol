@@ -39,7 +39,12 @@ contract FlashLoan is FlashLoanSimpleReceiverBase, Arb {
 
         // Your Arb logic goes here.
         (address[] memory _swappingPair, address[] memory _routesPair) = abi.decode(params, (address[], address[]));
-        dualDexTrade(_routesPair[0], _routesPair[1], _swappingPair[0], _swappingPair[1], amount);
+
+        if (_swappingPair.length == 3 && _routesPair.length == 3) {
+            triDexTrade(_routesPair[0], _routesPair[1], _routesPair[2], _swappingPair[0], _swappingPair[1], _swappingPair[2], amount);
+        } else {
+            dualDexTrade(_routesPair[0], _routesPair[1], _swappingPair[0], _swappingPair[1], amount);
+        }
 
         // Make sure to have this call at the end
         uint256 amountOwed = amount.add(premium);
