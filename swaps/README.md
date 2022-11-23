@@ -6,8 +6,8 @@
 -   [x] Calculate aave loan fee and add it to the calculation before doing the actual trade.
 -   [x] Determine if actual calculation for `profitTarget` works correctly.
 -   [x] Fix `dualTrade` to use ethers/truffle and call the right contract method (`requestFlashLoan`)
--   [] Setup wallet with tokens
--   [] Deploy contracts in Mainet Polygon
+-   [x] Setup wallet with tokens
+-   [x] Deploy contracts in Mainet Polygon
 -   [] Test 1 token swaps with 0 bps to better uderstand gas fees.
 -   [] Gradually up the token ammount to get more accurate gas fees.
 
