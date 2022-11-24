@@ -40,4 +40,4 @@ console.log(res.length, "pairs");
 // const uniq = _.uniqBy(res, JSON.stringify);
 // console.log(uniq.length, "unique pairs");
 
-fs.appendFile(`./data/pairs.json`, JSON.stringify(res), function (err) {});
+fs.appendFile(`./data/uni_sushi_pairs.json`, JSON.stringify(res), function (err) {});

@@ -54,7 +54,7 @@ contract FlashLoan is FlashLoanSimpleReceiverBase, Arb {
     }
 
 
-    function requestFlashLoan(address _asset, uint256 _amount, address[] memory _routesPair, address[] memory _swappingPair) public onlyOwner {
+    function requestFlashLoan(address _asset, uint256 _amount, address[] calldata _routesPair, address[] calldata _swappingPair) public onlyOwner {
         require(address(POOL) != address(0), "POOL does not exist!");
 
         address receiverAddress = address(this);

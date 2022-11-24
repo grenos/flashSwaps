@@ -1,13 +1,11 @@
 require("dotenv").config();
-// const { ethers } = require("ethers");
-var _ = require("lodash");
 
-import { ethers, Wallet } from "ethers";
+import { ethers } from "ethers";
 import { Address } from "cluster";
-import { Pool } from "@uniswap/v3-sdk";
-import { Token } from "@uniswap/sdk-core";
+import { Pool, Route, Trade } from "@uniswap/v3-sdk";
+import { CurrencyAmount, Token, TradeType } from "@uniswap/sdk-core";
 import { abi as IUniswapV3PoolABI } from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json";
-const { PROVIDER_MAIN_URL, MNEMONIC } = process.env;
+import { abi as QuoterABI } from "@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json";
 const provider = new ethers.providers.JsonRpcProvider(
     "https://mainnet.infura.io/v3/5851d99f0f79480d95709f0bb4659ad1"
 );
@@ -17,6 +15,9 @@ const poolContract = new ethers.Contract(
     IUniswapV3PoolABI,
     provider
 );
+
+const quoterAddress = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6";
+const quoterContract = new ethers.Contract(quoterAddress, QuoterABI, provider);
 
 const poolImmutablesAbi = [
     "function factory() external view returns (address)",
@@ -120,8 +121,51 @@ async function main1() {
         state.tick
     );
 
+    const amountIn = 1500;
+    /*
+        function quoteExactInputSingle(
+            address tokenIn,
+            address tokenOut,
+            uint24 fee,
+            uint256 amountIn,
+            uint160 sqrtPriceLimitX96
+        ) external returns (uint256 amountOut);
+
+
+        To get around this difficulty, we can use the callStatic method provided by ethers.js. callStatic is a useful method that submits a state-changing transaction to an Ethereum node, but asks the node to simulate the state change, rather than to execute it. Our script can then return the result of the simulated state change.
+
+        To simulate a transaction without actually broadcasting it to the EVM, use the callStatic to call the ExactInputSingle function in the Quoter contract, which will tell us how much an of output token we will receive given a certain amount of input token when using a single hop swap.
+    */
+    const quotedAmountOut =
+        await quoterContract.callStatic.quoteExactInputSingle(
+            immutables.token0,
+            immutables.token1,
+            immutables.fee,
+            amountIn.toString(),
+            0
+        );
+
+    const swapRoute = new Route([poolExample], TokenA, TokenB);
+
+    // Create an Unchecked Trade, a type of trade that is useful when we have retrieved a quote prior to the construction of the trade object.
+    const uncheckedTradeExample = Trade.createUncheckedTrade({
+        route: swapRoute,
+        inputAmount: CurrencyAmount.fromRawAmount(TokenA, amountIn.toString()),
+        outputAmount: CurrencyAmount.fromRawAmount(
+            TokenB,
+            quotedAmountOut.toString()
+        ),
+        tradeType: TradeType.EXACT_INPUT,
+    });
+
+    console.log("The quoted amount out is", quotedAmountOut.toString());
+    console.log("The unchecked trade object is", uncheckedTradeExample);
+
     const token0Price = poolExample.token0Price;
     const token1Price = poolExample.token1Price;
+
+    console.log("token0Price", token0Price);
+    console.log("token1Price", token1Price);
 
     console.log(poolExample);
 }

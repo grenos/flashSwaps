@@ -1,4 +1,4 @@
-var tokens = require("../allTokens.json");
+var uni = require("../../data/uniAll.json");
 const fs = require("fs");
 
 /*
@@ -11,29 +11,43 @@ const fs = require("fs");
             "symbol": "AAVE"
         },
 
+
+         {
+            "chainId": 137,
+            "address": "0x9c2C5fd7b07E95EE044DDeba0E97a665F142394f",
+            "name": "1inch",
+            "symbol": "1INCH",
+            "decimals": 18,
+            "logoURI": "https://assets.coingecko.com/coins/images/13469/thumb/1inch-token.png?1608803028",
+            "extensions": {
+                "bridgeInfo": {
+                    "1": {
+                        "tokenAddress": "0x111111111117dC0aa78b770fA6A738034120C302"
+                    }
+                }
+            }
+        },
+
 */
 
 const getTokens = () => {
     const tokenList = [];
 
-    for (const [key, value] of Object.entries(tokens)) {
-        let obj = {
-            address: value.tokenInfo.address,
-            chainId: value.tokenInfo.chainId,
-            decimals: value.tokenInfo.decimals,
-            logoURI: value.tokenInfo.logoURI,
-            name: value.tokenInfo.name,
-            symbol: value.tokenInfo.symbol,
-        };
-
-        tokenList.push(obj);
+    for (const [key, value] of Object.entries(uni.tokens)) {
+        if (value.chainId === 137) {
+            let obj = {
+                address: value.address,
+                chainId: value.chainId,
+                decimals: value.decimals,
+                logoURI: value.logoURI,
+                name: value.name,
+                symbol: value.symbol,
+            };
+            tokenList.push(obj);
+        }
     }
 
-    fs.appendFile(
-        `./data/allPolygonTokens.json`,
-        JSON.stringify(tokenList),
-        function (err) {}
-    );
+    fs.appendFile(`./data/allUniShawpTokens.json`, JSON.stringify(tokenList), function (err) {});
 };
 
 getTokens();
