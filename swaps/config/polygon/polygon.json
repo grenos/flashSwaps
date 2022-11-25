@@ -1,6 +1,6 @@
 {
     "arbContract": "0xFC084d0Ba97BB1E8FFEb7D855EEd41066dF7Aa32",
-    "minBasisPointsPerTrade": 1,
+    "minBasisPointsPerTrade": 50,
 
     "routers": [
         {
@@ -16,12 +16,12 @@
             "address": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
         },
         {
-            "dex": "mmf",
-            "address": "0x51aBA405De2b25E5506DeA32A6697F450cEB1a17"
-        },
-        {
             "dex": "dfyn",
             "address": "0xA102072A4C07F06EC3B4900FDC4C7B80b6c57429"
+        },
+        {
+            "dex": "mmf",
+            "address": "0x51aBA405De2b25E5506DeA32A6697F450cEB1a17"
         },
         {
             "dex": "apeSwap",
@@ -43,8 +43,8 @@
             "address": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
         },
         {
-            "sym": "aave",
-            "address": "0xD6DF932A45C0f255f85145f286eA0b292B21C90B"
+            "sym": "uni",
+            "address": "0xb33EaAd8d922B1083446DC23f610c2567fB5180f"
         }
     ]
 }

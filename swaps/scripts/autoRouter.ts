@@ -9,7 +9,7 @@ import contract from "../build/contracts/FlashLoan.json";
 import config from "../config/polygon/polygon.json";
 import routes from "./../config/polygon/routes.json";
 import tokens from "./../config/polygon/tokens.json";
-import { convertToCurrencyDecimals } from "../config/helpers/TokenConverters";
+import { getDexSpots } from "../config/helpers/getDexSpots";
 require("dotenv").config();
 const { PROVIDER_MAIN_URL, MNEMONIC } = process.env;
 
@@ -26,18 +26,19 @@ const _contract = new ethers.Contract(config.arbContract, contract.abi, wallet);
 const V3_SWAP_ROUTER_ADDRESS = config.routers[0].address;
 
 const main = async () => {
-    let badRoutes: Array<string[]> = [];
-
     for (const _route of routes) {
-        const t0 = tokens.find((token) => token.address === _route[2]);
-        const t1 = tokens.find((token) => token.address === _route[3]);
+        const t0 = tokens.find((token) => token.address === _route[0]);
+        const t1 = tokens.find((token) => token.address === _route[1]);
 
         if (t0 && t1) {
             const token0 = createUniToken(t0.address, t0.decimals, t0.symbol, t0.name);
             const token1 = createUniToken(t1.address, t1.decimals, t1.symbol, t1.name);
 
-            const typedValueParsed = "1000000000000000000"; // 1 DAI -> substitute with wallet balance
-            const token0Amount = CurrencyAmount.fromRawAmount(token0, JSBI.BigInt(typedValueParsed));
+            const token0Interface = new ethers.Contract(token0.address, _interface.abi, wallet);
+            const myToken0Balance: BigNumber = await token0Interface.balanceOf(wallet.address);
+
+            const initialAmount = myToken0Balance.toString();
+            const token0Amount = CurrencyAmount.fromRawAmount(token0, JSBI.BigInt(initialAmount));
 
             const route = await router.route(token0Amount, token1, TradeType.EXACT_INPUT, {
                 recipient: wallet.address,
@@ -46,68 +47,62 @@ const main = async () => {
                 type: SwapType.SWAP_ROUTER_02,
             });
 
-            const token0Interface = new ethers.Contract(token0.address, _interface.abi, wallet);
-            const nonce = await provider.getTransactionCount(wallet.address);
+            if (route?.quoteGasAdjusted === undefined) {
+                console.log("Found bad route", _route);
+                continue;
+            }
 
-            // total return with gas spend excluded
-            console.log(`Quote Exact In: ${route?.quote.toFixed(18)}`); // 0.145635673821823188
-
-            // total return minus gas spend
-            console.log(
-                `Gas Adjusted Quote In: ${route?.quoteGasAdjusted.toFixed(18)}` // 0.143163764099581468
-            );
-
-            console.log(`Gas Price In Wei: ${route?.gasPriceWei.toString()}`); // 102733947847
-            console.log(`Estimated Gas: ${route?.estimatedGasUsed.toString()}`); // 193000
             const uniAmountBack = BigNumber.from(
-                ethers.utils.parseUnits(route?.quoteGasAdjusted.toFixed(18) ?? "0", "ether")
+                ethers.utils.parseUnits(route?.quoteGasAdjusted.toFixed(token1.decimals) ?? "0", token1.decimals)
             );
-            console.log("BG ---> ", uniAmountBack.toString());
 
-            // Adjust decimals if token has 6
-            const sushiBack = await _contract
-                .getAmountOutMin(config.routers[1].address, token1.address, token0.address, uniAmountBack)
-                .catch((err: any) => {
-                    badRoutes.push(_route);
-                });
+            const { dexSpot, _router } = await getDexSpots(token1, token0, uniAmountBack, _contract);
 
-            console.log(`SushiBack: ${sushiBack?.toString()}`);
+            const multiplier = BigNumber.from(config.minBasisPointsPerTrade + 10000);
+            const sizeMultiplied = dexSpot.mul(multiplier);
+            const divider = BigNumber.from(10000);
+            const profitTarget = sizeMultiplied.div(divider);
 
-            // const approveUni = await tokenInterface.approve(
-            //     V3_SWAP_ROUTER_ADDRESS,
-            //     BigNumber.from(typedValueParsed),
-            //     {
-            //         gasLimit: route?.estimatedGasUsed,
-            //         gasPrice: BigNumber.from(route?.gasPriceWei),
-            //         nonce,
-            //     }
-            // );
-            // await approveUni.wait();
+            if (BigNumber.from(profitTarget).gt(initialAmount)) {
+                console.log("token post proccessing", uniAmountBack.toString());
+                console.log("dex price", dexSpot.toString());
+                console.log("profitTarget", profitTarget.toString());
+                console.log("initial amount", initialAmount.toString());
 
-            // const nonce2 = await provider.getTransactionCount(wallet.address);
+                // const nonce = await provider.getTransactionCount(wallet.address);
+                // const approveUni = await token0Interface.approve(V3_SWAP_ROUTER_ADDRESS, initialAmount, {
+                //     gasLimit: route?.estimatedGasUsed,
+                //     gasPrice: BigNumber.from(route?.gasPriceWei),
+                //     nonce,
+                // });
+                // await approveUni.wait();
 
-            // const transaction = {
-            //     chainId: ChainId.POLYGON,
-            //     data: route?.methodParameters?.calldata,
-            //     to: V3_SWAP_ROUTER_ADDRESS,
-            //     value: BigNumber.from(route?.methodParameters?.value),
-            //     from: wallet.address,
-            //     gasPrice: BigNumber.from(route?.gasPriceWei),
-            //     gasLimit: route?.estimatedGasUsed.mul(2),
-            //     nonce: nonce2,
-            // };
+                // const nonce2 = await provider.getTransactionCount(wallet.address);
+                // const transaction = {
+                //     chainId: ChainId.POLYGON,
+                //     data: route?.methodParameters?.calldata,
+                //     to: V3_SWAP_ROUTER_ADDRESS,
+                //     value: BigNumber.from(route?.methodParameters?.value),
+                //     from: wallet.address,
+                //     gasPrice: BigNumber.from(route?.gasPriceWei),
+                //     gasLimit: route?.estimatedGasUsed.mul(2),
+                //     nonce: nonce2,
+                // };
 
-            // const tx = await wallet.signTransaction(transaction);
-            // const called = await provider.sendTransaction(tx);
-            // const finalTx = await called.wait();
-            // console.log(finalTx, "finalTx");
+                // const tx = await wallet.signTransaction(transaction);
+                // const called = await provider.sendTransaction(tx);
+                // const finalTx = await called.wait();
+                // console.log(finalTx, "finalTx");
 
-            // function swap(address router, address _tokenIn, address _tokenOut, uint256 _amount)
-            // const swapSushi = await _contract.swap();
+                //! fix contract to have the swap method callable from external and only from the owner - add weth to the transations as we did before
+                // const swapSushi:  = await _contract.swap(_router, token1.address, token0.address, uniAmountBack);
+                // const finalSushi = await swapSushi.wait();
+            }
         }
     }
 
-    fs.appendFile(`./data/badRoutes.json`, JSON.stringify(badRoutes), function (err) {});
+    //! loop finished - call function again
+    // main();
 };
 
 process.on("uncaughtException", function (err) {

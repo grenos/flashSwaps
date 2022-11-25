@@ -18,21 +18,19 @@ function getPairs(array) {
     for (i = 0; i < array.length; i++) {
         let baseAssetIndex = Math.floor(Math.random() * (3 - 0 + 1)) + 0;
 
-        result1.push([
-            i % 2 != 0 ? uniRouter.address : sushiRouter.address,
-            i % 2 == 0 ? uniRouter.address : sushiRouter.address,
+        // result1.push([
+        //     i % 2 != 0 ? uniRouter.address : sushiRouter.address,
+        //     i % 2 == 0 ? uniRouter.address : sushiRouter.address,
+        //     baseAssets[baseAssetIndex].address,
+        //     array[i].address,
+        // ]);
+
+        result2.push([
             baseAssets[baseAssetIndex].address, // ok
             array[i].address, // ok
         ]);
-
-        // result2.push([
-        //     i % 2 == 0 ? uniRouter.address : sushiRouter.address,
-        //     i % 2 != 0 ? uniRouter.address : sushiRouter.address,
-        //     baseAssets[baseAssetIndex].address, // ok
-        //     array[i].address, // ok
-        // ]);
     }
-    return [...result1];
+    return [...result2];
 }
 
 const res = getPairs(tokens);
@@ -40,4 +38,4 @@ console.log(res.length, "pairs");
 // const uniq = _.uniqBy(res, JSON.stringify);
 // console.log(uniq.length, "unique pairs");
 
-fs.appendFile(`./data/uni_sushi_pairs.json`, JSON.stringify(res), function (err) {});
+fs.appendFile(`./data/pairs4.json`, JSON.stringify(res), function (err) {});
